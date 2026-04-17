@@ -1,10 +1,10 @@
-﻿
+
 #pragma once
 #include "Target.hpp"
 #include"imgui_toggle.h"
 #include"candy.h"
 #include "imgui_notify.h"
-#include "tahoma.h" // <-- Required font!
+#include "tahoma.h"
 #include "simhei.h"
 #include "imgui-knobs.h"
 #include "icon.h"
@@ -58,33 +58,16 @@ namespace OW {
 				entitytime = GetTickCount();
 				mutex.unlock();
 			}
-			/*if (!(ow_entities.size() > 0)) {
-				mutex.lock();
-				abletotread = 0;
-				mutex.unlock();
-				//entities = {};
-				//local_entity.AngleBase=0;
-				//entitytime = GetTickCount();
-				Sleep(2000);
-				continue;
-			}*/
 			if (!(ow_entities.size() > 0)) {
 				mutex.lock();
-				//abletotread = 0;
 				entities = {};
 				hp_dy_entities = {};
 				mutex.unlock();
-				//entities = {};
-				//local_entity.AngleBase=0;
-				//entitytime = GetTickCount();
 				Sleep(1000);
 				continue;
 			}
-			//mutex.unlock();
 			std::vector<c_entity> tmp_entities{};
 			std::vector<hpanddy> hpdy_entities{};
-			//int howbigentitysize = ow_entities.size();
-			//if (howbigentitysize > 30) howbigentitysize = 30;
 			c_entity lastentity{};
 			for (int i = 0; i < ow_entities.size(); i++) {
 				c_entity entity{};
@@ -124,9 +107,6 @@ namespace OW {
 				velocity_compo_t velo_compo{};
 				hero_compo_t hero_compo{};
 				vis_compo_t vis_compo{};
-
-
-				//printf("%llx\n", SDK->RPM<uint16_t>(ComponentParent + 0x48));
 				if (entity == lastentity) continue;
 				else lastentity = entity;
 
@@ -144,11 +124,11 @@ namespace OW {
 					entity.Alive = (entity.PlayerHealth > 0.f) ? true : false;
 					entity.imort = health_compo.isImmortal;
 					entity.barrprot = health_compo.isBarrierProjected;
-					//printf("health %f,health address:%llx\n", entity.PlayerHealth, entity.HealthBase);
 				}
 				else continue;
 				if (entity.RotationBase) {
-					entity.Rot = SDK->RPM<Vector3>(SDK->RPM<uint64_t>(entity.RotationBase + 0x7C0 + 0x10) + 0x8FC);
+					uint64_t baseAddress = SDK->RPM<uint64_t>(entity.RotationBase + 0x7B0);
+					entity.Rot = SDK->RPM<Vector3>(baseAddress + 0x8FC);
 				}
 				if (entity.VelocityBase) {
 					velo_compo = SDK->RPM<velocity_compo_t>(entity.VelocityBase);
@@ -159,8 +139,6 @@ namespace OW {
 					int neck_index = entity.GetSkel()[1];
 					int chest_index = entity.GetSkel()[2];
 					entity.head_pos = entity.GetBonePos(head_index);
-					//if (entity.head_pos == lastpos) continue;
-					//else lastpos = entity.head_pos;
 					entity.neck_pos = entity.GetBonePos(neck_index);
 					entity.chest_pos = entity.GetBonePos(chest_index);
 				}
@@ -172,10 +150,7 @@ namespace OW {
 						int neck_index = entity.GetSkel()[1];
 						int chest_index = entity.GetSkel()[2];
 						entity.head_pos = entity.GetBonePos(head_index);
-						//这里弄高了0.02
 						entity.head_pos.Y += 0.02;
-						//if (entity.head_pos == lastpos) continue;
-						//else lastpos = entity.head_pos;
 						entity.neck_pos = entity.GetBonePos(neck_index);
 						entity.chest_pos = entity.GetBonePos(chest_index);
 					}
@@ -213,23 +188,12 @@ namespace OW {
 				if (Config::draw_info && Config::drawbattletag) {
 					entity.statcombase = DecryptComponent(LinkParent, TYPE_STAT);
 					if (entity.statcombase) {
-						/*DWORD_PTR statcom = entity.statcombase;
-						char result[MAX_PATH] = "";
-						memcpy_s(result, MAX_PATH, (char*)SDK->RPM<uint64_t>(statcom + 0xe0), MAX_PATH);
-						//SDK->read_buf(SDK->RPM<uint64_t>(statcom + 0xe0), result, MAX_PATH);
-						std::stringstream ss;
-						ss << result;
-						entity.battletag = ss.str();*/
-						//entity.battletag = result;
-						////entity.battletag = std::string((const char*)SDK->RPM<uint64_t>(statcom + 0xe0));
 						char buffer[64] = u8"";
 						if (entity != local_entity) {
 							uintptr_t off = SDK->RPM<uintptr_t>(entity.statcombase + 0xE0);
 							SDK->read_buf(off, buffer, sizeof(char) * 64);
 							entity.battletag = buffer;
 						}
-						//std::cout << buffer << std::endl;
-						//std::cout << entity.battletag << std::endl;
 					}
 				}
 				if (entity.TeamBase) {
@@ -239,7 +203,6 @@ namespace OW {
 				if (entity.VisBase) {
 					vis_compo = SDK->RPM<vis_compo_t>(entity.VisBase);
 					entity.Vis = (DecryptVis(vis_compo.key1) ^ vis_compo.key2) ? true : false;
-					//printf("%llx\n", SDK->RPM<uint64_t>(entity.VisBase + 0xa0));
 				}
 				if (entity.SkillBase) {
 					entity.skill1act = IsSkillActive(entity.SkillBase + 0x40, 0, 0x28E3);
@@ -248,22 +211,6 @@ namespace OW {
 					if (entity.HeroID == eHero::HERO_SOMBRA && entity.Team && !Config::Rage && !Config::fov360 && !Config::silent && !Config::fakesilent) {
 						entity.Vis = (entity.Vis && !IsSkillActivate1(entity.SkillBase + 0x40, 0, 0x7C5));
 					}
-					//entity.skillcd1 = readskillcd(entity.SkillBase, 0, 0x189c);
-					//entity.skillcd2 = readskillcd(entity.SkillBase, 0, 0x1f89);
-					//std::cout << entity.skillcd1 << " " << entity.skillcd2 << std::endl;
-
-					//if (entity.skill1act) {
-					//	std::cout << GetHeroNames(entity.HeroID, entity.LinkBase).c_str() << " shift on.\n";
-						//ImGui::GetForegroundDrawList()->AddText(ImVec2(WX, WY/2), ImGui::ColorConvertFloat4ToU32(ImVec4(255 / 255.0, 255 / 255.0, 255 / 255.0, 255 / 255.0)), GetHeroNames(entity.HeroID, entity.LinkBase).c_str());
-
-					//}
-					//if (entity.skill2act) {
-					//	std::cout << GetHeroNames(entity.HeroID, entity.LinkBase).c_str() << " E on.\n";
-					//}
-					//if (entity.skill1act|| entity.skill2act) std::cout << 1 << std::endl;
-					//if (IsSkillActive(entity.SkillBase, 0, 0x4BF))std::cout<<1<<std::endl;
-					//else {} //std::cout << 0 << std::endl;
-					//std::cout << ow_entities.size() << std::endl;
 				}
 
 				if (entity.OutlineBase)
@@ -272,7 +219,6 @@ namespace OW {
 					else SetBorderLine(0x1, entity.OutlineBase);
 					if (Config::externaloutline) {
 						if (entity.Team && i != Config::Targetenemyi && !Config::healthoutline && !Config::rainbowoutline) {
-							//printf("%llx\n",SDK->RPM<uint32_t>(entity.OutlineBase + 0x130) );
 							if (entity.Vis) {
 								Config::visenemy = convertToHex(Config::enargb);
 								SDK->WPM<uint32_t>(entity.OutlineBase + 0x130, Config::visenemy);
@@ -320,7 +266,6 @@ namespace OW {
 						}
 						if (!entity.Team) {
 							Config::Allycolor = convertToHex(Config::allyargb);
-							//printf("%llx\n", Config::Allycolor);
 							SDK->WPM<uint32_t>(entity.OutlineBase + 0x130, Config::Allycolor);
 							SDK->WPM<uint32_t>(entity.OutlineBase + 0x144, Config::Allycolor);
 
@@ -330,23 +275,15 @@ namespace OW {
 						if (!entity.Vis) SetBorderLine(0x2, entity.OutlineBase);
 						else SetBorderLine(0x1, entity.OutlineBase);
 						Config::Allycolor = convertToHex(Config::allyargb);
-						//printf("%llx\n", Config::Allycolor);
 						SDK->WPM<uint32_t>(entity.OutlineBase + 0x130, Config::Allycolor);
 						SDK->WPM<uint32_t>(entity.OutlineBase + 0x144, Config::Allycolor);
 					}
 				}
-
-
-				//const auto angle_component = DecryptComponent(LinkParent, TYPE_PLAYERCONTROLLER);
 				if (entity.AngleBase)
 				{
 					float dist = Vector3(viewMatrix_xor.get_location().x, viewMatrix_xor.get_location().y, viewMatrix_xor.get_location().z).DistTo(entity.head_pos);
-					/*printf("x:%f\n", viewMatrix_xor.get_location().x);
-					printf("y:%f\n", viewMatrix_xor.get_location().y);
-					printf("z:%f\n", viewMatrix_xor.get_location().z);*/
 					if (dist <= 1 && GetHeroEngNames(entity.HeroID, entity.LinkBase) != skCrypt(u8"Unknown").decrypt()) {
 						entity.skillcd1 = readskillcd(entity.SkillBase + 0x40, 0, 0x189c);
-						//entity.skillready = cdready(entity.SkillBase+0x50, 0, 0x189c);
 						entity.skillcd2 = readskillcd(entity.SkillBase + 0x40, 0, 0x1f89);
 						local_entity = entity;
 						Config::reloading = IsSkillActivate1(local_entity.SkillBase + 0x40, 0, 0x4BF);
@@ -356,40 +293,24 @@ namespace OW {
 							uintptr_t off = SDK->RPM<uintptr_t>(local_entity.statcombase + 0xE0);
 							SDK->write_buf(off, Config::fakename, sizeof(Config::fakename));
 						}
-
-						//std::cout << GetHeroNames(entity.HeroID, entity.LinkBase).c_str() << " shift CD:" << SkillCD(entity.SkillBase, 0, 0x189C) << "\n";
-						//std::cout << GetHeroNames(entity.HeroID, entity.LinkBase).c_str() << " E CD." << SkillCD(entity.SkillBase, 0, 0x1F89) << "\n";
 						SDK->g_player_controller = entity.AngleBase;
-						//printf("%llx\n", SDK->g_player_controller);
 						if (local_entity.GetTeam() == eTeam::TEAM_DEATHMATCH) entity.Team = false;
-						//	printf("%f\n", SDK->RPM<float>(SDK->g_player_controller + 0x1760));
-						//float spectuurtu = SDK->RPM<float>(SDK->g_player_controller + 0x178C);
-						//SDK->WPM<float>(SDK->g_player_controller + 0x178C, -100);
 					}
-					//printf("d4a %d\n", SDK->RPM<uint16>(SDK->g_player_controller + 0xd4a));
-					//printf("d4c %d\n", SDK->RPM<uint16>(SDK->g_player_controller + 0xd4c));
 				}
-				//printf("%llx\n", entity.HeroID);
 				if (ComponentParent && LinkParent && GetHeroNames(entity.HeroID, entity.LinkBase) != skCrypt(u8"未知").decrypt())
 					tmp_entities.push_back(entity);
 			}
-			//entities = tmp_entities;
-			//mutex.lock();
 			entities = tmp_entities;
 			hp_dy_entities = hpdy_entities;
-			//mutex.unlock();
 			Sleep(3);
-			//Sleep(5);
 		}
 	}
 
 	inline void viewmatrix_thread() {
 		__try {
 			while (true) {
-				//mutex.lock();
 				auto viewMatrixVal = SDK->RPM<uint64_t>(SDK->dwGameBase + offset::Address_viewmatrix_base) ^ offset::offset_viewmatrix_xor_key;
 				Vector2 WindowSize = SDK->RPM<Vector2>(viewMatrixVal + 0x41C);
-				//mutex.unlock();
 
 				static RECT TempRect = { NULL };
 				static POINT TempPoint;
@@ -399,17 +320,8 @@ namespace OW {
 				TempRect.top = TempPoint.y;
 				WX = TempRect.right;
 				WY = TempRect.bottom;
-
-
-
-				//WX = WindowSize.X;
-				//WY = WindowSize.Y;
-				//mutex.lock();
 				viewMatrix = SDK->RPM<Matrix>(viewMatrixPtr);
 				viewMatrix_xor = SDK->RPM<Matrix>(viewMatrix_xor_ptr);
-				//printf("vm:\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n", viewMatrix.m11, viewMatrix.m12, viewMatrix.m13, viewMatrix.m14, viewMatrix.m21, viewMatrix.m22, viewMatrix.m23, viewMatrix.m24, viewMatrix.m31, viewMatrix.m32, viewMatrix.m33, viewMatrix.m34, viewMatrix.m41, viewMatrix.m42, viewMatrix.m43, viewMatrix.m44);
-				//printf("vmxor:\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n", viewMatrix_xor.m11, viewMatrix_xor.m12, viewMatrix_xor.m13, viewMatrix_xor.m14, viewMatrix_xor.m21, viewMatrix_xor.m22, viewMatrix_xor.m23, viewMatrix_xor.m24, viewMatrix_xor.m31, viewMatrix_xor.m32, viewMatrix_xor.m33, viewMatrix_xor.m34, viewMatrix_xor.m41, viewMatrix_xor.m42, viewMatrix_xor.m43, viewMatrix_xor.m44);
-				//mutex.unlock();
 				Sleep(5);
 			}
 		}
@@ -419,22 +331,13 @@ namespace OW {
 
 	inline void PlayerInfo() {
 		if (entities.size() > 0) {
-			//mutex.lock();
-			//for (const c_entity &entity : entities)//传常量引用
 			for (c_entity entity : entities){
 				if (entity.Alive && entity.Team && local_entity.PlayerHealth > 0) {
-				//if (entity.Alive && local_entity.PlayerHealth > 0) {
-					Vector3 Vec3 = entity.head_pos; // 일단 원래대로 돌렸음
-					//if (entity.HeroID == 0x16dd || entity.HeroID == 0x16ee) Vec3 = entity.rootpos;
+					Vector3 Vec3 = entity.head_pos;
 					float dist = Vector3(viewMatrix_xor.get_location().x, viewMatrix_xor.get_location().y, viewMatrix_xor.get_location().z).DistTo(Vec3);
 					Vector2 Vec2_A{}, Vec2_B{};
 					Vector2 Vec2_C{}, Vec2_D{};
 					Vector2 Vec2_E{}, Vec2_F{};
-					//if (!viewMatrix.WorldToScreen(Vector3(Vec3.X, Vec3.Y + 1.f, Vec3.Z), &Vec2_A, Vector2(WX, WY)))
-					//	continue;
-
-					//if (!viewMatrix.WorldToScreen(Vector3(Vec3.X, Vec3.Y - 0.8f, Vec3.Z), &Vec2_B, Vector2(WX, WY)))
-					//	continue;
 
 					if (!viewMatrix.WorldToScreen(Vector3(Vec3.X, Vec3.Y-1.5f , Vec3.Z), &Vec2_A, Vector2(WX, WY)))
 						continue;
@@ -451,27 +354,19 @@ namespace OW {
 					Size /= 5;
 					if (Size < 12) Size = 12;
 					if (Size > 16) Size = 16;
-					// 여기 감
-					//Render::DrawInfo(ImVec2(Vec2_A.X, Vec2_A.Y), ImGui::GetColorU32(ImVec4(1, 0.2, 0.8, 0.7)), 30, (skCrypt("[").decrypt() + std::to_string((int)dist) + skCrypt("m] ").decrypt() + skCrypt(u8"[名称 : ").decrypt() + GetHeroNames(entity.HeroID, entity.LinkBase).c_str() + skCrypt(u8"]").decrypt()), dist, entity.PlayerHealth, entity.PlayerHealthMax);
 					if(Config::healthbar) Render::DrawHealthBar(Vector2(Vec2_A.X+ width/2, Vec2_A.Y), -Height2, entity.PlayerHealth, entity.PlayerHealthMax);
-					//Render::DrawString(Vector2(Vec2_A.X , Vec2_A.Y), Color(255,255,255,255), (u8"血量：" + std::to_string(entity.PlayerHealth)).c_str());
 					if (Config::drawhealth)Render::DrawStrokeText(ImVec2(Vec2_A.X - width / 6, Vec2_A.Y), ImGui::GetColorU32(ImVec4(0, 0.9, 1, 1)), (skCrypt(u8"[血量：").decrypt() + std::to_string((int)entity.PlayerHealth)+ skCrypt(u8"]").decrypt()).c_str(), Size);
 					if (Config::ult)Render::DrawStrokeText(ImVec2(Vec2_A.X - width / 6, Vec2_A.Y + Height2 / 5), ImGui::GetColorU32(ImVec4(0, 0.9, 1, 1)), (skCrypt(u8"[终极技能：").decrypt() + std::to_string((int)entity.ultimate) + skCrypt(u8"]").decrypt()).c_str(), Size);
 					if (Config::dist)Render::DrawStrokeText(ImVec2(Vec2_B.X - width / 6,  Vec2_B.Y), ImGui::GetColorU32(ImVec4(0, 0.9, 1, 1)), (skCrypt(u8"[距离：").decrypt() + std::to_string((int)dist) + skCrypt(u8"]").decrypt()).c_str(), Size);
 					if (Config::name)Render::DrawStrokeText(ImVec2(Vec2_B.X - width / 6, Vec2_B.Y+ Height2/5), ImGui::GetColorU32(ImVec4(0, 0.9, 1, 1)), (skCrypt(u8"[名称：").decrypt() + GetHeroNames(entity.HeroID, entity.LinkBase) + skCrypt(u8"]").decrypt()).c_str(), Size);
-					//std::string str = std::to_string(entity.HeroID);
-					//Render::DrawStrokeText(ImVec2(Vec2_B.X - width / 6, Vec2_B.Y + Height2 / 5), ImGui::GetColorU32(ImVec4(0, 0.9, 1, 1)), str.c_str(), Size);
 				}
 			}
-			//mutex.unlock();
 		}
 	}
 
 	inline void skillinfo() {
 		if (entities.size() > 0) {
-			//mutex.lock();
 			int i = 10;
-			//for (const c_entity &entity : entities)//传常量引用
 			for (c_entity entity : entities) {
 				std::string heroname = GetHeroEngNames(entity.HeroID, entity.LinkBase).c_str();
 				if (entity.Team && heroname != u8"Bot" && heroname != u8"Unknown" && entity.HeroID != 0x16dd && entity.HeroID != 0x16ee && entity.HeroID != 0x16bb) {
@@ -479,17 +374,7 @@ namespace OW {
 					float ypos = WY + i;
 					std::string skillstring;
 					float ult = entity.ultimate;
-					//float cd1 = entity.skillcd1;
-					//float cd2 = entity.skillcd2;
 					skillstring = skCrypt(u8"Enemy:").decrypt() + heroname + skCrypt(u8" Ult:").decrypt() + std::to_string((int)ult);
-					//if (entity.skillcd1 != 0 && entity.skillcd2 != 0)
-						//skillstring = skCrypt(u8"敌方：").decrypt()+ heroname +skCrypt(u8" 终极技能：").decrypt() + std::to_string((int)ult) + skCrypt(u8"% 技能1 cd：").decrypt() + std::to_string((int)cd1) + skCrypt(u8" 技能2 cd：").decrypt() + std::to_string((int)cd2);
-					//else if (entity.skillcd1 == 0 && entity.skillcd2 != 0)
-						//skillstring = skCrypt(u8"敌方：").decrypt() + heroname +skCrypt(u8" 终极技能：").decrypt() + std::to_string((int)ult) + skCrypt(u8"% 技能1可用").decrypt() + skCrypt(u8" 技能2 cd：").decrypt() + std::to_string((int)cd2);
-					//else if (entity.skillcd1 != 0 && entity.skillcd2 == 0)
-						//skillstring = skCrypt(u8"敌方：").decrypt() + heroname +skCrypt(u8" 终极技能：").decrypt() + std::to_string((int)ult) + skCrypt(u8"% 技能1 cd：").decrypt() + std::to_string((int)cd1) + skCrypt(u8" 技能2可用").decrypt();
-					//else if (entity.skillcd1 == 0 && entity.skillcd2 == 0)
-						//skillstring = skCrypt(u8"敌方：").decrypt() + heroname +skCrypt(u8" 终极技能：").decrypt() + std::to_string((int)ult) + skCrypt(u8"% 技能1可用").decrypt() + skCrypt(u8" 技能2可用").decrypt();
 					Render::DrawSKILL(ImVec2(70, 30 + i), skillstring);
 					i += 20;
 				}
@@ -508,17 +393,7 @@ namespace OW {
 					float ypos = WY + i;
 					std::string skillstring;
 					float ult = entity.ultimate;
-					//float cd1 = entity.skillcd1;
-					//float cd2 = entity.skillcd2;
 					skillstring = skCrypt(u8"Ally:").decrypt() + heroname + skCrypt(u8" Ult:").decrypt() + std::to_string((int)ult);
-					//if (entity.skillcd1 != 0 && entity.skillcd2 != 0)
-					//	skillstring = skCrypt(u8"己方：").decrypt()+ heroname + skCrypt(u8" 终极技能：").decrypt() + std::to_string((int)ult) + skCrypt(u8"% 技能1 cd：").decrypt() + std::to_string((int)cd1) + skCrypt(u8" 技能2 cd：").decrypt() + std::to_string((int)cd2);
-					//else if (entity.skillcd1 == 0 && entity.skillcd2 != 0)
-					//	skillstring = skCrypt(u8"己方：").decrypt() + heroname + skCrypt(u8" 终极技能：").decrypt() + std::to_string((int)ult) + skCrypt(u8"% 技能1可用").decrypt() + skCrypt(u8" 技能2 cd：").decrypt() + std::to_string((int)cd2);
-					//else if (entity.skillcd1 != 0 && entity.skillcd2 == 0)
-					//	skillstring = skCrypt(u8"己方：").decrypt() + heroname + skCrypt(u8" 终极技能：").decrypt() + std::to_string((int)ult) + skCrypt(u8"% 技能1 cd：").decrypt() + std::to_string((int)cd1) + skCrypt(u8" 技能2可用").decrypt();
-					//else if (entity.skillcd1 == 0 && entity.skillcd2 == 0)
-					//	skillstring = skCrypt(u8"己方：").decrypt() + heroname + skCrypt(u8" 终极技能：").decrypt() + std::to_string((int)ult) + skCrypt(u8"% 技能1可用").decrypt() + skCrypt(u8" 技能2可用").decrypt();
 					Render::DrawSKILL(ImVec2(70, 30 + i), skillstring);
 					i += 20;
 				}
@@ -529,14 +404,12 @@ namespace OW {
 					i += 20;
 				}
 			}
-			//mutex.unlock();
 		}
 	}
 
 
 	inline void Draw_Skel() {
 		if (entities.size() > 0) {
-			//mutex.lock();
 			for (c_entity entity : entities) {
 				if (entity.HeroID == 0x16dd) continue;
 				if (entity.Alive && entity.Team && local_entity.PlayerHealth > 0) {
@@ -600,15 +473,12 @@ namespace OW {
 					}
 				}
 			}
-			//mutex.unlock();
 		}
 	}
 	inline void draw3dbox() {
 		
 			if (entities.size() > 0)
 			{
-				//mutex.lock();
-				//for (const c_entity &entity : entities)//传常量引用
 				for (c_entity entity : entities){
 					if (entity.HeroID == 0x16dd) continue;
 					if (entity.Alive && entity.Team && local_entity.PlayerHealth > 0)
@@ -659,7 +529,6 @@ namespace OW {
 						Render::DrawLine(Vec2_G, Vec2_E, Color(255, 255, 255, 255), 2.f);
 					}
 				}
-				//mutex.unlock();
 			}
 		
 	}
@@ -667,8 +536,6 @@ namespace OW {
 	inline void drawline() {
 		if (entities.size() > 0)
 		{
-			//mutex.lock();
-			//for (const c_entity &entity : entities)//传常量引用
 			for (c_entity entity : entities)
 			{
 				if (entity.HeroID == 0x16dd) continue;
@@ -683,83 +550,11 @@ namespace OW {
 
 				}
 			}
-			//mutex.unlock();
 		}
 	}
-
-	/*inline void esp() {
-		__try
-		{
-			ImDrawList* Draw = ImGui::GetBackgroundDrawList();
-			ImVec2 CrossHair = ImVec2(WX / 2.0f, WY / 2.0f);
-			//std::cout << WX;
-			if (Config::draw_info)
-				PlayerInfo();
-
-			if (Config::draw_skel)
-				Draw_Skel();
-
-			if (Config::skillinfo) {
-				skillinfo();
-			}
-
-			if (Config::drawbox3d) {
-				draw3dbox();
-			}
-
-			if (Config::draw_edge)
-			{
-				if (entities.size() > 0)
-				{
-					//mutex.lock();
-					//for (const c_entity &entity : entities)//传常量引用
-					for (c_entity entity : entities)
-					{
-						if (entity.HeroID == 0x16dd) continue;
-						if (entity.Alive && entity.Team && local_entity.PlayerHealth > 0)
-						{
-							Vector3 Vec3 = entity.head_pos;
-							Vector2 Vec2_A{}, Vec2_B{};
-							if (!viewMatrix.WorldToScreen(Vector3(Vec3.X, Vec3.Y + 0.1f, Vec3.Z), &Vec2_A, Vector2(WX, WY)))
-								continue;
-
-							if (!viewMatrix.WorldToScreen(Vector3(Vec3.X, Vec3.Y - 1.8f, Vec3.Z), &Vec2_B, Vector2(WX, WY)))
-								continue;
-
-							float height = abs(Vec2_A.Y - Vec2_B.Y);
-							float width = height * 0.85;
-							float Size = abs(Vec2_A.Y - Vec2_B.Y) / 2.0f;
-							float Size2 = abs(Vec2_A.Y - Vec2_B.Y) / 20.0f;
-							float Height2 = abs(Vec2_A.Y - Vec2_B.Y);
-							int num7 = (float)(1500 / (int)Height2);
-							float xpos = (Vec2_A.X + Vec2_B.X) / 2.f;
-							float ypos = Vec2_A.Y + Size / 5;
-
-							Render::DrawCorneredBox(Vec2_A.X - (width / 2) - 1, Vec2_A.Y - (height / 5) - 1, width + 2, height + 12, ImGui::GetColorU32(Config::EnemyCol));
-							Render::DrawFilledRect(Vec2_A.X - (width / 2) - 1, Vec2_A.Y - (height / 5) - 1, width + 2, height + 12, ImColor(0, 0, 0, 60));
-						}
-					}
-					//mutex.unlock();
-				}
-			}
-			
-			if (Config::drawline)
-			{
-				drawline();
-			}
-			if (Config::draw_fov)
-			{
-				Draw->AddCircle(CrossHair, Config::Fov, ImGui::GetColorU32(Config::fovcol), 3000);
-			}
-		}
-		__except (1) {
-
-		}
-	}*/
 	inline void esp() {
 		ImDrawList* Draw = ImGui::GetForegroundDrawList();
 		ImVec2 CrossHair = ImVec2(WX / 2.0f, WY / 2.0f);
-		//std::cout << WX;
 		if (Config::draw_hp_pack) {
 			for (hpanddy hppack : hp_dy_entities) {
 				if (hppack.entityid == 0x400000000002533) continue;
@@ -805,12 +600,6 @@ namespace OW {
 			int drawradar = 0;
 			for (c_entity entity : entities)
 			{
-				/*for (int i = 0; i < 150; i++) {
-					Vector3 Vec3bone = entity.GetBonePos(i);
-					Vector2 Vec2bone{};
-					if (!viewMatrix.WorldToScreen(Vector3(Vec3bone.X, Vec3bone.Y, Vec3bone.Z), &Vec2bone, Vector2(WX, WY))) continue;
-					Render::DrawStrokeText(ImVec2(Vec2bone.X, Vec2bone.Y), ImGui::GetColorU32(ImVec4(0.9, 0.9, 1, 1)), std::to_string((int)i).c_str(), 10);
-				}*/
 				if (Config::radar) {
 					if (!drawradar) {
 						Draw->AddCircleFilled(ImVec2(WX - 200, WY - 400), 200, ImU32(IM_COL32(0, 0, 0, 120)));
@@ -840,17 +629,12 @@ namespace OW {
 						DirectX::XMFLOAT3 Result{};
 						XMMATRIX rotMatrix = XMMatrixRotationY(local_entity.Rot.X/* - atan2(this->Rot.Z, this->Rot.X)*/);
 						XMMATRIX inverseRotMatrix = XMMatrixInverse(nullptr, rotMatrix);
-
-						// 要转换的世界坐标点或向量
-						DirectX::XMFLOAT3 worldPoint = { entity.head_pos.X - viewMatrix_xor.get_location().x,entity.head_pos.Y - viewMatrix_xor.get_location().y,entity.head_pos.Z - viewMatrix_xor.get_location().z }; // 世界坐标点或向量
+						DirectX::XMFLOAT3 worldPoint = { entity.head_pos.X - viewMatrix_xor.get_location().x,entity.head_pos.Y - viewMatrix_xor.get_location().y,entity.head_pos.Z - viewMatrix_xor.get_location().z };
 						worldPoint.x *= 2.5;
 						worldPoint.y *= 2.5;
 						worldPoint.z *= 2.5;
-						// 使用逆矩阵将世界坐标点或向量转换到角色坐标系
 						DirectX::XMVECTOR worldVector = XMLoadFloat3(&worldPoint);
 						DirectX::XMVECTOR characterVector = XMVector3Transform(worldVector, inverseRotMatrix);
-
-						// 将结果存储到一个 DirectX::XMFLOAT3 结构中
 						DirectX::XMFLOAT3 characterPoint;
 						XMStoreFloat3(&characterPoint, characterVector);
 						float therad = sqrt(characterPoint.x * characterPoint.x + characterPoint.z * characterPoint.z);
@@ -859,23 +643,16 @@ namespace OW {
 							characterPoint.z = (characterPoint.z / therad) * 200;
 						}
 						ImVec2 pointPosition(WX - 200 - characterPoint.x, WY - 400 - characterPoint.z);
-						// 定义点的半径
 						float pointRadius = 3.4f;
-
-
-						//视线
 						Vector3 whereiseye;
 						Vector3 whereisarrow1, whereisarrow2, whereisarrow3, whereisarrow4;
 						entity.GetEyeRayPoint(whereiseye, whereisarrow1, whereisarrow2, whereisarrow3, whereisarrow4);
-						DirectX::XMFLOAT3 eyePoint = { (whereiseye.X - entity.head_pos.X) * 4 + whereiseye.X - viewMatrix_xor.get_location().x,whereiseye.Y - viewMatrix_xor.get_location().y,(whereiseye.Z - entity.head_pos.Z) * 4 + whereiseye.Z - viewMatrix_xor.get_location().z }; // 世界坐标点或向量
+						DirectX::XMFLOAT3 eyePoint = { (whereiseye.X - entity.head_pos.X) * 4 + whereiseye.X - viewMatrix_xor.get_location().x,whereiseye.Y - viewMatrix_xor.get_location().y,(whereiseye.Z - entity.head_pos.Z) * 4 + whereiseye.Z - viewMatrix_xor.get_location().z };
 						eyePoint.x *= 2.5;
 						eyePoint.y *= 2.5;
 						eyePoint.z *= 2.5;
-						// 使用逆矩阵将世界坐标点或向量转换到角色坐标系
 						DirectX::XMVECTOR theeyeworldVector = XMLoadFloat3(&eyePoint);
 						DirectX::XMVECTOR theeyeVector = XMVector3Transform(theeyeworldVector, inverseRotMatrix);
-
-						// 将结果存储到一个 DirectX::XMFLOAT3 结构中
 						DirectX::XMFLOAT3 theeyePoint;
 						XMStoreFloat3(&theeyePoint, theeyeVector);
 						float theradforeye = sqrt(theeyePoint.x * theeyePoint.x + theeyePoint.z * theeyePoint.z);
@@ -884,15 +661,10 @@ namespace OW {
 							theeyePoint.z = (theeyePoint.z / theradforeye) * 195;
 						}
 						ImVec2 eyepointPosition(WX - 200 - theeyePoint.x, WY - 400 - theeyePoint.z);
-
-
-						// 定义点的颜色（RGBA）
 						ImU32 pointColor;
 						if (entity.Vis)
 							pointColor = IM_COL32(255, 0, 51, 255);
 						else pointColor = IM_COL32(204, 0, 153, 255);
-
-						// 使用绘图列表的AddCircle函数来添加一个点
 						if (!entity.Team) {
 							Draw->AddCircleFilled(pointPosition, pointRadius, IM_COL32(102, 255, 255, 255));
 						}
@@ -931,7 +703,6 @@ namespace OW {
 						if (Size < 16) Size = 16;
 						if (Size > 20) Size = 20;
 						if (Config::drawbattletag) Render::DrawStrokeText(ImVec2(Vec2_A.X - width / 6, Vec2_B.Y - Size), ImGui::GetColorU32(ImVec4(0, 0.9, 1, 1)), (skCrypt(u8"[ID：").decrypt() + entity.battletag + skCrypt(u8"]").decrypt()).c_str(), Size);
-						//if (Config::healthbar) Render::DrawHealthBar(Vector2(Vec2_A.X - width / 2, Vec2_A.Y), -Height2, entity.PlayerHealth, entity.PlayerHealthMax);
 						if (Config::healthbar) Render::DrawSeerLikeHealth(Vec2_B.X, Vec2_B.Y - 30.f, (int)(1.25f * entity.ultimate), 125, (int)entity.PlayerHealth, (int)entity.PlayerHealthMax);
 
 						if (Config::drawhealth)Render::DrawStrokeText(ImVec2(Vec2_A.X - width / 6, Vec2_A.Y), ImGui::GetColorU32(ImVec4(0.9, 0.9, 1, 1)), (skCrypt(u8"[HP：").decrypt() + std::to_string((int)entity.PlayerHealth) + skCrypt(u8"]").decrypt()).c_str(), Size);
@@ -1220,17 +991,6 @@ namespace OW {
 			WNDCLASSEX wc = { sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, skCrypt("ImperialUltra"), NULL };
 			RegisterClassEx(&wc);
 			hwnd = CreateWindow(wc.lpszClassName, skCrypt("ImperialUltra"), WS_POPUP, 0, 0, 0, 0, NULL, NULL, wc.hInstance, NULL);
-			/*
-			static RECT TempRect = { NULL };
-			static POINT TempPoint;
-			GetClientRect(SDK->Windowsizehd, &TempRect);
-			ClientToScreen(SDK->Windowsizehd, &TempPoint);
-			TempRect.left = TempPoint.x;
-			TempRect.top = TempPoint.y;
-			WX = TempRect.right;
-			WY = TempRect.bottom;
-			hwnd = CreateWindowEx(NULL, skCrypt("ThatIsImp"), skCrypt("ThatIsImp"), WS_POPUP | WS_VISIBLE, TempRect.left, TempRect.top, TempRect.right - TempRect.left, TempRect.bottom - TempRect.top, NULL, NULL, 0, NULL);
-            */
 			if (!CreateDeviceD3D(hwnd))
 			{
 				CleanupDeviceD3D();
@@ -1242,8 +1002,6 @@ namespace OW {
 
 			SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
 			SetWindowLong(hwnd, GWL_EXSTYLE, WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE);
-			
-			//SetWindowLong(hwnd, GWL_EXSTYLE, WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW);
 
 			ShowWindow(hwnd, SW_SHOWDEFAULT);
 			UpdateWindow(hwnd);
@@ -1253,12 +1011,8 @@ namespace OW {
 			ImFont* ico = nullptr;
 			ImFont* ico234 = nullptr;
 			ImGuiIO& io = ImGui::GetIO(); (void)io;
-			//ImGuiIO* io = &ImGui::GetIO();
 			ImFontConfig font_cfg;
 			font_cfg.FontDataOwnedByAtlas = false;
-			//ImFont* font1 = io.Fonts->AddFontFromMemoryTTF((void*)tahoma, sizeof(tahoma), 20.f, &font_cfg);
-			//ImGui::MergeIconsWithLatestFont(16.f, false);
-			//ImFont* font2 = io.Fonts->AddFontFromFileTTF(".\\SimHei.ttf", 20.0f, NULL, io.Fonts->GetGlyphRangesChineseFull());
 			io.Fonts->AddFontFromMemoryTTF((void*)SimHei_data, sizeof(SimHei_data), 24.f, &font_cfg, io.Fonts->GetGlyphRangesChineseFull());
 			ImGui::MergeIconsWithLatestFont(25.f, false);
 			io.Fonts->AddFontFromMemoryTTF((void*)tahoma, sizeof(tahoma), 18.f, &font_cfg);
@@ -1267,13 +1021,7 @@ namespace OW {
 				ico = io.Fonts->AddFontFromMemoryTTF(&icon, sizeof icon, 65.f, NULL, io.Fonts->GetGlyphRangesCyrillic());
 			if(ico234==nullptr)
 				ico234 = io.Fonts->AddFontFromMemoryTTF((void*)tahoma, sizeof(tahoma), 65.f, NULL, io.Fonts->GetGlyphRangesCyrillic());
-			// Initialize notify
-			//io.Fonts->AddFontFromFileTTF(".\\SimHei.ttf", 20.0f, &font_cfg, io.Fonts->GetGlyphRangesChineseFull());
-			//ImGui::MergeIconsWithLatestFont(16.f, false);
-			//ImGui::StyleColorsDark();
 			ImCandy::Theme_Blender();
-
-			//ImGui::StyleColorsLight();
 
 
 			ImGui_ImplWin32_Init(tWnd);
@@ -1319,23 +1067,6 @@ namespace OW {
 				dm.dmSize = sizeof(DEVMODE);
 
 				EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &dm);
-				/*
-				FPS = dm.dmDisplayFrequency;
-				//FPS = 60;
-				if (FPS < 200) FPS = 200;
-				else if (FPS > 240) FPS = 240;
-
-				a = std::chrono::system_clock::now();
-				std::chrono::duration<double, std::milli> work_time = a - b;
-				if (work_time.count() < 1000 / FPS)
-				{
-					std::chrono::duration<double, std::milli> delta_ms(1000 / FPS - work_time.count());
-					auto delta_ms_duration = std::chrono::duration_cast<std::chrono::milliseconds>(delta_ms);
-					std::this_thread::sleep_for(std::chrono::milliseconds(delta_ms_duration.count()));
-				}
-
-				b = std::chrono::system_clock::now();
-				std::chrono::duration<double, std::milli> sleep_time = b - a;*/
 				if(!Config::Menu)
 					Sleep(5);
 				DWORD Style = GetWindowLong(tWnd, GWL_STYLE);
@@ -1350,7 +1081,6 @@ namespace OW {
 				{
 					::TranslateMessage(&msg);
 					::DispatchMessage(&msg);
-					//continue;
 				}
 
 				if (GetAsyncKeyState(VK_LBUTTON))
@@ -1364,7 +1094,6 @@ namespace OW {
 
 				if (GetAsyncKeyState(VK_INSERT)) {
 					Config::Menu = !Config::Menu;
-					//ImGui::GetIO().MouseDrawCursor = Config::Menu;
 					Sleep(250);
 				}
 				if (!Config::Menu&&doingone==0) {
@@ -1377,36 +1106,25 @@ namespace OW {
 					SetFocus(hwnd);
 					ShowCursor(TRUE);
 					SetWindowLong(hwnd, GWL_EXSTYLE, WS_EX_LAYERED | WS_EX_TOOLWINDOW);
-					//UpdateWindow(hwnd);
-					//Config::doingentity = 0;
-					//Sleep(100);
-					//Config::doingentity = 1;
-					//_beginthread((_beginthread_proc_type)entity_thread, 0, 0);
 					doingone = 0;
 				}
-				// Start the Dear ImGui frame
 				ImGui_ImplDX11_NewFrame();
 				ImGui_ImplWin32_NewFrame();
 				ImGui::NewFrame();
-				//ImGui::PushFont(font2);
 				ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 5.f);
 				ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(30.f / 255.f, 102.f / 255.f, 150.f / 255.f, 70.f / 255.f));
 				ImGui::RenderNotifications();
-				ImGui::PopStyleVar(1); // Don't forget to Pop()
+				ImGui::PopStyleVar(1);
 				ImGui::PopStyleColor(1);
-				//ImGui::PopFont();
 				if (Config::Menu)
 				{
-					//ImGui::PushFont(font2);
 					ImGui::SetNextWindowPos(ImVec2(OW::WX / 2.f - 550.f, OW::WY / 2.f - 425.f));
 					ImGui::SetNextWindowSize(ImVec2(1100, 850));
 					bool _visible = true;
-					//if (ImGui::Begin(skCrypt(u8"Imperial Beta"), &_visible, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar)) {
-					if (ImGui::Begin(skCrypt(u8"Fart Life"), &_visible, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoTitleBar)) {
+					if (ImGui::Begin(skCrypt(u8"GET A Life"), &_visible, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoTitleBar)) {
 						ImGui::Spacing();
 						ImGui::PushFont(ico);
 						ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(colora / 255.f, colorb / 255.f, colorc / 255.f, 255.f / 255.f));
-						//ImGui::Text(skCrypt("              T"));
 						ImGui::PopStyleColor();
 						ImGui::SameLine();
 						ImGui::PopFont();
@@ -1428,7 +1146,7 @@ namespace OW {
 						ImGui::SameLine();
 						ImGui::Spacing();
 						ImGui::SameLine();
-						ImGui::Text(skCrypt("                    Fart Life"));
+						ImGui::Text(skCrypt("                    GET A Life"));
 						ImGui::PopStyleColor();
 						ImGui::PopFont();
 						ImGui::PushFont(ico);
@@ -1624,15 +1342,12 @@ namespace OW {
 								ImGui::Spacing();
 								ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.f, 0.f, 0.f, 1.0f));
 								ImGui::Toggle(skCrypt(u8"Trigger Bot"), &Config::triggerbot, ImGuiToggleFlags_Animated);
-								//ImGui::Checkbox(skCrypt(u8"自动扳机"), &Config::triggerbot);
 								if (Config::triggerbot) {
 									Config::Flick = false;
 									Config::hanzo_flick = false;
 									Config::Tracking = false;
 									Config::silent = false;
 								}
-
-								//ImGui::Checkbox(skCrypt(u8"跟枪自瞄"), &Config::Tracking);
 								ImGui::Toggle(skCrypt(u8"Tracking"), &Config::Tracking, ImGuiToggleFlags_Animated);
 								if (Config::Tracking) {
 									Config::Flick = false;
@@ -1640,7 +1355,6 @@ namespace OW {
 									Config::triggerbot = false;
 									Config::silent = false;
 								}
-								//ImGui::Checkbox(skCrypt(u8"甩枪自瞄"), &Config::Flick);
 								ImGui::Toggle(skCrypt(u8"Flickbot"), &Config::Flick, ImGuiToggleFlags_Animated);
 								if (Config::Flick) {
 									Config::Tracking = false;
@@ -1648,11 +1362,8 @@ namespace OW {
 									Config::triggerbot = false;
 									Config::silent = false;
 								}
-								//ImGui::Checkbox(skCrypt(u8"全局回溯"), &Config::trackback);
-								//ImGui::Checkbox(skCrypt(u8"开启预判"), &Config::Prediction);
 								ImGui::Toggle(skCrypt(u8"Prediction"), &Config::Prediction, ImGuiToggleFlags_Animated);
 								if (Config::Prediction) ImGui::Toggle(skCrypt(u8"Gravity Predict"), &Config::Gravitypredit, ImGuiToggleFlags_Animated);
-								//ImGui::Checkbox(skCrypt(u8"重力预判"), &Config::Gravitypredit);
 								else Config::Gravitypredit = false;
 								if (local_entity.HeroID == eHero::HERO_HANJO) {
 									ImGui::Toggle(skCrypt(u8"Hanzo Flick"), &Config::hanzo_flick, ImGuiToggleFlags_Animated);
@@ -1665,7 +1376,6 @@ namespace OW {
 									Config::Tracking = false;
 									Config::silent = false;
 								}
-								//ImGui::Checkbox(skCrypt(u8"半藏甩箭"), &Config::hanzo_flick);
 								else Config::hanzo_flick = false;
 								if (Config::hanzo_flick || Config::Prediction) {
 									ImGui::Separator();
@@ -1673,7 +1383,6 @@ namespace OW {
 									ImGui::SliderFloat(skCrypt(u8"BulletTravelSpeed"), &Config::predit_level, 0.f, 200.f, skCrypt("%.2f"));
 								}
 								if (Config::hanzo_flick || Config::Flick || Config::silent) {
-									//ImGui::Checkbox(skCrypt(u8"按住自动开枪"), &Config::AutoShoot);
 									ImGui::Toggle(skCrypt(u8"AutoShoot"), &Config::AutoShoot, ImGuiToggleFlags_Animated);
 									if (Config::AutoShoot) {
 										ImGui::SliderInt(skCrypt(u8"Interval(ms)"), &Config::Shoottime, 0, 1500, skCrypt("%.2f"));
@@ -1711,16 +1420,6 @@ namespace OW {
 									}
 									ImGui::EndCombo();
 								}
-
-								//ImGui::BulletText(skCrypt(u8"Fov"));
-								//ImGui::SliderFloat(skCrypt(u8"Fov数值"), &Config::Fov, 0.f, 500.f, skCrypt("%.3f"));
-
-								//ImGui::SliderFloat(skCrypt(u8"HitBox大小控制"), &Config::hitbox, 0.12f, 0.28f, skCrypt("%.3f"));
-								//ImGui::SliderFloat(skCrypt(u8"HitBox大小控制"), &Config::hitbox, 0.05f, 0.28f, skCrypt("%.3f"));
-								//ImGui::SameLine(); Render::Help(skCrypt(u8"调整开枪范围，建议0.12-0.28，谨慎调整到0.3以上，打不准"));
-								//ImGui::BulletText(skCrypt(u8"瞄准速度"));
-								//ImGui::SliderFloat(skCrypt(u8"跟枪速度"), &Config::Tracking_smooth, 0.f, 3.f, skCrypt("%.2f"));
-								//ImGui::SliderFloat(skCrypt(u8"甩枪速度"), &Config::Flick_smooth, 0.f, 3.f, skCrypt("%.2f"));
 								ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.4f, 0.6f, 1.f, 1.0f));
 								ImGui::Spacing();
 								ImGui::Spacing();
@@ -1875,10 +1574,6 @@ namespace OW {
 								ImGui::Toggle(skCrypt(u8"Secondary aim on/off"), &Config::secondaim, ImGuiToggleFlags_Animated);
 								ImGui::PopStyleColor(1);
 								if (Config::secondaim) {
-									//ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(153.f / 255.f, 153.f / 255.f, 255.f / 255.f, 255.f / 255.f));
-									//ImGui::BulletText(Config::nowhero.data());
-									//ImGui::PopStyleColor(1);
-									//ImGui::Spacing();
 									ImGui::Spacing();
 									ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.f, 0.f, 0.f, 1.0f));
 									ImGui::Toggle(skCrypt(u8"High priority"), &Config::highPriority, ImGuiToggleFlags_Animated);
@@ -2073,19 +1768,6 @@ namespace OW {
 							}
 							if (subindex == 3) {
 								ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.f, 0.f, 0.f, 1.0f));
-								/*ImGui::Toggle(skCrypt(u8"Backtrack"), &Config::trackback, ImGuiToggleFlags_Animated);
-								if (Config::trackback) {
-									TCHAR bufsave[100];
-									//_stprintf(bufsave, _T("%d"), (int)(t*1000+100));
-									_stprintf(bufsave, _T("%d"), 1);
-									WritePrivateProfileString(_T("Section1"), _T("enabletrackback"), bufsave, _T("C:\\ProgramData\\KEY.ini"));
-								}
-								else {
-									TCHAR bufsave[100];
-									//_stprintf(bufsave, _T("%d"), (int)(t*1000+100));
-									_stprintf(bufsave, _T("%d"), 0);
-									WritePrivateProfileString(_T("Section1"), _T("enabletrackback"), bufsave, _T("C:\\ProgramData\\KEY.ini"));
-								}*/
 								ImGui::Toggle(skCrypt(u8"AI AIM(Beta)"), &Config::aiaim, ImGuiToggleFlags_Animated);
 								ImGui::Toggle(skCrypt(u8"Auto FOV"), &Config::autoscalefov, ImGuiToggleFlags_Animated);
 								if (!Config::autoscalefov) {
@@ -2102,9 +1784,7 @@ namespace OW {
 								ImGui::PopStyleColor(1);
 								if (local_entity.HeroID == eHero::HERO_GENJI) {
 									ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.f, 0.f, 0.f, 1.0f));
-									//ImGui::Checkbox(skCrypt(u8"源氏秒刀"), &Config::GenjiBlade);
 									ImGui::Toggle(skCrypt(u8"Genji Blade"), &Config::GenjiBlade, ImGuiToggleFlags_Animated);
-									//ImGui::Checkbox(skCrypt(u8"源氏自动S"), &Config::AutoShiftGenji);
 									ImGui::Toggle(skCrypt(u8"Genji Auto Dash"), &Config::AutoShiftGenji, ImGuiToggleFlags_Animated);
 									ImGui::PopStyleColor(1);
 								}
@@ -2121,11 +1801,7 @@ namespace OW {
 							}
 						}
 						if (tab_index == 2) {
-							/*ImGui::Checkbox(skCrypt(u8"玩家信息"), &Config::draw_info);
-							ImGui::Checkbox(skCrypt(u8"骨骼透视"), &Config::draw_skel);
-							ImGui::Checkbox(skCrypt(u8"技能信息"), &Config::skillinfo);*/
 							ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.f, 0.f, 0.f, 1.0f));
-							//ImGui::Toggle(skCrypt(u8"玩家信息"), &Config::draw_info, ImGuiToggleFlags_Animated);
 							ImGui::Toggle(skCrypt(u8"Info"), &Config::draw_info, ImGuiToggleFlags_Animated);
 							if (Config::draw_info) {
 								ImGui::Spacing();
@@ -2147,7 +1823,7 @@ namespace OW {
 								ImGui::SameLine();
 								ImGui::Toggle(skCrypt(u8"Ult"), &Config::ult, ImGuiToggleFlags_Animated);
 							}
-							ImGui::Toggle(skCrypt(u8"RigelCrossHair"), &Config::crosscircle, ImGuiToggleFlags_Animated);
+							ImGui::Toggle(skCrypt(u8"testCrossHair"), &Config::crosscircle, ImGuiToggleFlags_Animated);
 							ImGui::Toggle(skCrypt(u8"Bone"), &Config::draw_skel, ImGuiToggleFlags_Animated);
 							ImGui::Toggle(skCrypt(u8"Radar"), &Config::radar, ImGuiToggleFlags_Animated);
 							if (Config::radar) {
@@ -2156,71 +1832,8 @@ namespace OW {
 							else Config::radarline = false;
 							ImGui::Toggle(skCrypt(u8"Ult info"), &Config::skillinfo, ImGuiToggleFlags_Animated);
 							ImGui::PopStyleColor(1);
-							/*ImGui::Checkbox(skCrypt(u8"轮廓透视"), &Config::outline);
-							if (Config::outline) {
-								TCHAR buf[100];
-								_stprintf(buf, _T("%d"), 1);
-								WritePrivateProfileString(_T("Section1"), _T("esp"), buf, _T("C:\\ProgramData\\KEY.ini"));
-							}
-							else {
-									TCHAR buf[100];
-									_stprintf(buf, _T("%d"), 0);
-									WritePrivateProfileString(_T("Section1"), _T("esp"), buf, _T("C:\\ProgramData\\KEY.ini"));
-							}*/
 							ImGui::Spacing();
-							/*ImGui::BulletText(skCrypt(u8"轮廓透视选项"));
-							if (ImGui::BeginCombo(skCrypt(u8"选择："), espop))
-							{
-								for (int i = 0; i < 4; i++)
-								{
-									const bool type = espop == espop_type[i];
-									if (ImGui::Selectable(espop_type[i], type))
-									{
-										TCHAR buf[100];
-										espop = espop_type[i];
-										switch (i)
-										{
-										case 0:
-											_stprintf(buf, _T("%d"), 0);
-											WritePrivateProfileString(_T("Section1"), _T("esp"), buf, _T("C:\\ProgramData\\KEY.ini"));
-											break;
-										case 1:
-											_stprintf(buf, _T("%d"), 1);
-											WritePrivateProfileString(_T("Section1"), _T("esp"), buf, _T("C:\\ProgramData\\KEY.ini"));
-											break;
-										case 2:
-											_stprintf(buf, _T("%d"), 2);
-											WritePrivateProfileString(_T("Section1"), _T("esp"), buf, _T("C:\\ProgramData\\KEY.ini"));
-											break;
-										case 3:
-											_stprintf(buf, _T("%d"), 3);
-											WritePrivateProfileString(_T("Section1"), _T("esp"), buf, _T("C:\\ProgramData\\KEY.ini"));
-											break;
-										}
-									}
-								}
-								ImGui::EndCombo();
-							}ImGui::Spacing();
-							ImGui::Spacing();
-							ImGui::Spacing();
-							ImGui::Checkbox(skCrypt(u8"外部轮廓透视"), &Config::externaloutline);
-							ImGui::Checkbox(skCrypt(u8"方框透视"), &Config::draw_edge);
-							ImGui::Checkbox(skCrypt(u8"3D方框透视"), &Config::drawbox3d);
-							ImGui::Checkbox(skCrypt(u8"目标连线"), &Config::drawline);
-							ImGui::ColorEdit3(skCrypt(u8"方框颜色"), (float*)&Config::EnemyCol);
-							ImGui::Checkbox(skCrypt(u8"显示Fov圆圈"), &Config::draw_fov);*/
 							ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.f, 0.f, 0.f, 1.0f));
-							/*ImGui::Toggle(skCrypt(u8"Sombra Esp"), &Config::outline, ImGuiToggleFlags_Animated);
-							if (Config::outline) {
-								TCHAR buf[100];
-								_stprintf(buf, _T("%d"), 1);
-								WritePrivateProfileString(_T("Section1"), _T("esp"), buf, _T("C:\\ProgramData\\KEY.ini"));
-							}
-							else if (!Config::outline) {
-								TCHAR buf[100];
-								_stprintf(buf, _T("%d"), 0);
-								WritePrivateProfileString(_T("Section1"), _T("esp"), buf, _T("C:\\ProgramData\\KEY.ini"));
-							}*/
 							ImGui::Toggle(skCrypt(u8"HeadShotLine"), &Config::eyeray, ImGuiToggleFlags_Animated);
 							ImGui::Toggle(skCrypt(u8"Enemy/Ally Outline"), &Config::externaloutline, ImGuiToggleFlags_Animated);
 							ImGui::Toggle(skCrypt(u8"Only Ally Outline"), &Config::teamoutline, ImGuiToggleFlags_Animated);
@@ -2253,72 +1866,30 @@ namespace OW {
 							ImGui::Separator();
 						}
 						if (tab_index == 3) {
-							//ImGui::Checkbox(skCrypt(u8"我没有想要赢，我只是不想输"), &Config::Rage);
 							ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.f, 0.f, 0.f, 1.0f));
 							ImGui::Toggle(skCrypt(u8"Aim Instantly"), &Config::Rage, ImGuiToggleFlags_Animated);
 							ImGui::SameLine(); Render::Help(skCrypt(u8"Aim Instantly"));
 							if (Config::Rage) {
 								ImGui::Toggle(skCrypt(u8"Fake Silent"), &Config::fakesilent, ImGuiToggleFlags_Animated);
 							}
-							//ImGui::Checkbox(skCrypt(u8"360度瞄准"), &Config::fov360);
 							ImGui::Toggle(skCrypt(u8"Non fov limit"), &Config::fov360, ImGuiToggleFlags_Animated);
-							/*ImGui::SameLine(); Render::Help(skCrypt(u8"Set fov to 6000"));
-							if (Config::fov360) {
-								Config::Fov = 6000;
-								Config::Fov2 = 6000;
-							}*/
 							if (!Config::fov360 && Config::Fov == 6000) Config::Fov = 200;
 							if (!Config::fov360 && Config::Fov2 == 6000) Config::Fov2 = 200;
 							ImGui::BulletText(skCrypt(u8"Risky"));
-							//ImGui::Toggle(skCrypt(u8"Silent"), &Config::silent, ImGuiToggleFlags_Animated);
-							//ImGui::Checkbox(skCrypt(u8"静默自瞄"), &Config::silent);
-							//ImGui::SameLine(); Render::Help(skCrypt(u8"Disable trackback at first"));
-							/*if (Config::silent) {
-								Config::Tracking = false;
-								Config::hanzo_flick = false;
-								Config::Flick = false;
-								Config::triggerbot = false;
-								Config::trackback = false;
-								//ImGui::Checkbox(skCrypt(u8"AntiAim反自瞄AA"), &Config::Antiaim);
-								ImGui::Toggle(skCrypt(u8"Tracking Silent"), &Config::silenttrace, ImGuiToggleFlags_Animated);
-								ImGui::Toggle(skCrypt(u8"AntiAim AA"), &Config::Antiaim, ImGuiToggleFlags_Animated);
-								ImGui::SameLine(); Render::Help(skCrypt(u8"SpinBot"));
-								if (Config::Antiaim) {
-									TCHAR buf[100];
-									_stprintf(buf, _T("%d"), 1);
-									WritePrivateProfileString(_T("Section1"), _T("antiaim"), buf, _T("C:\\ProgramData\\KEY.ini"));
-								}
-								else {
-									TCHAR buf[100];
-									_stprintf(buf, _T("%d"), 0);
-									WritePrivateProfileString(_T("Section1"), _T("antiaim"), buf, _T("C:\\ProgramData\\KEY.ini"));
-								}
-							}
-							else {
-								Config::silenttrace = false;
-								Config::Antiaim = false;
-								TCHAR buf[100];
-								_stprintf(buf, _T("%d"), 0);
-								WritePrivateProfileString(_T("Section1"), _T("antiaim"), buf, _T("C:\\ProgramData\\KEY.ini"));
-							}*/
 							ImGui::PopStyleColor(1);
 						}
 						if (tab_index == 4) {
 							ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.f, 0.f, 0.f, 1.0f));
 							ImGui::BulletText(skCrypt(u8"Play more legit"));
-							//ImGui::Checkbox(skCrypt(u8"自动瞄准最近部位"), &Config::autobone);
-							//ImGui::Checkbox(skCrypt(u8"自动空枪(甩枪适用）"), &Config::dontshot);
 
 							ImGui::Toggle(skCrypt(u8"Auto miss FLICK ONLY"), &Config::dontshot, ImGuiToggleFlags_Animated);
 
 							ImGui::SliderFloat(skCrypt(u8"miss hitbox(missbox)"), &Config::missbox, 0.f, 1.f, skCrypt("%.2f"));
 							ImGui::SliderInt(skCrypt(u8"miss frequency"), &Config::shotmanydont, 0, 6);
 							ImGui::Spacing();
-							//ImGui::Checkbox(skCrypt(u8"切换目标延迟毫秒"), &Config::targetdelay);
 							ImGui::Toggle(skCrypt(u8"Switching target delay"), &Config::targetdelay, ImGuiToggleFlags_Animated);
 
 							ImGui::SliderInt(skCrypt(u8"Delay(ms)"), &Config::targetdelaytime, 0, 1000, skCrypt("%.2f"));
-							//ImGui::Checkbox(skCrypt(u8"瞄准超时开枪"), &Config::hitboxdelayshoot);
 							ImGui::Toggle(skCrypt(u8"Shoot when Timeout"), &Config::hitboxdelayshoot, ImGuiToggleFlags_Animated);
 
 							ImGui::SliderInt(skCrypt(u8":timeout(ms)"), &Config::hiboxdelaytime, 0, 1000, skCrypt("%.2f"));
@@ -2327,9 +1898,6 @@ namespace OW {
 						}
 						if (tab_index == 5) {
 							ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.f, 0.f, 0.f, 1.0f));
-							//ImGui::Checkbox(skCrypt(u8"瞄准己方"), &Config::switch_team);
-
-							//ImGui::Checkbox(skCrypt(u8"自动近战"), &Config::AutoMelee);
 							ImGui::Toggle(skCrypt(u8"Change ingame fov"), &Config::enablechangefov, ImGuiToggleFlags_Animated);
 							if (Config::enablechangefov)
 								ImGui::SliderFloat(skCrypt(u8":degree"), &Config::CHANGEFOV, 1.f, 179.f, skCrypt("%.2f"));
@@ -2343,7 +1911,6 @@ namespace OW {
 							ImGui::PopStyleColor(1);
 							ImGui::SliderFloat(skCrypt(u8"Auto melee HP"), &Config::meleehealth, 0.f, 80.f, skCrypt("%.2f"));
 							ImGui::SliderFloat(skCrypt(u8"Auto melee dist"), &Config::meleedistance, 0.f, 10.f, skCrypt("%.2f"));
-							//ImGui::Checkbox(skCrypt(u8"自动技能"), &Config::AutoSkill);
 							ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.f, 0.f, 0.f, 1.0f));
 							ImGui::Toggle(skCrypt(u8"Auto Heal Skill"), &Config::AutoSkill, ImGuiToggleFlags_Animated);
 							ImGui::SliderFloat(skCrypt(u8"Auto Heal Skill Trigger HP"), &Config::SkillHealth, 0.f, 80.f, skCrypt("%.2f"));
@@ -2352,9 +1919,7 @@ namespace OW {
 							if (ImGui::Button(u8"Manual Save"))
 							{
 								Config::manualsave = true;
-								//ImGui::PushFont(font1);
 								ImGui::InsertNotification({ ImGuiToastType_Success, 3000, skCrypt(u8"Manual saved successfully"), "" });
-								//ImGui::PopFont();
 							}
 							ImGui::BulletText(skCrypt(u8"Press when nothing is working"));
 							if (ImGui::Button(u8"Reboot thread")) {
@@ -2368,15 +1933,7 @@ namespace OW {
 								Sleep(51);
 								ImGui::InsertNotification({ ImGuiToastType_Success, 3000, skCrypt(u8"Reboot Successfully"), "" });
 							}
-
-							//ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.f, 0.f, 0.f, 1.0f));
-							//ImGui::Toggle(skCrypt(u8"来点音乐"), &Config::musicplay, ImGuiToggleFlags_Animated);
-
-							//ImGui::PopStyleColor(1);
-							//nowtime = time(nullptr);
 							ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(colora5 / 255.f, colorb5 / 255.f, colorc5 / 255.f, 255.f / 255.f));
-							//ImGui::Text(u8"剩余时间：%d天%d小时%d分钟%d秒", (expiretime - nowtime) / 60 / 60 / 24, ((expiretime - nowtime) / 60 / 60) % 24, ((expiretime - nowtime) / 60) % 60, (expiretime - nowtime) % 60);
-							//if (Config::loginornot && (expiretime - nowtime) < 0) abort();
 							ImGui::Text(u8"Expires in：%dDays %dHours %dMins %dSecs", (expiretime - nowtime) / 60 / 60 / 24, ((expiretime - nowtime) / 60 / 60) % 24, ((expiretime - nowtime) / 60) % 60, (expiretime - nowtime) % 60);
 							if (Config::loginornot && (expiretime - nowtime) < 0) abort();
 							ImGui::Text(u8"FPS: %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
@@ -2397,8 +1954,6 @@ namespace OW {
 
 				g_pSwapChain->Present(1, 0);
 			}
-
-			// Cleanup
 			ImGui_ImplDX11_Shutdown();
 			ImGui_ImplWin32_Shutdown();
 			ImGui::DestroyContext();
@@ -2422,18 +1977,14 @@ namespace OW {
 			static float origin_sens = 0.f;
 			while (true) {
 				if (entities.size() > 0) {
-					//std::cout<<SDK->RPM<float>(GetSenstivePTR())<< std::endl;
-					//std::cout << GetSenstivePTR() << std::endl;
-					//bool reloading = IsSkillActive(local_entity.SkillBase, 0, 0x4BF);
 					if (SDK->RPM<float>(GetSenstivePTR()))
 						origin_sens = SDK->RPM<float>(GetSenstivePTR());
 					else if (origin_sens)
 						SDK->WPM<float>(GetSenstivePTR(), origin_sens);
-					//std::cout << SDK->RPM<float>(GetSenstivePTR()) << std::endl;
 					if (Config::triggerbot && GetAsyncKeyState(Config::aim_key)) {
 						auto vec = GetVector3(Config::Prediction ? true : false);
 						if (vec != Vector3(0, 0, 0) && !(entities[Config::Targetenemyi].skill2act && entities[Config::Targetenemyi].HeroID == eHero::HERO_GENJI)) {
-							auto local_angle = SDK->RPM<Vector3>(SDK->g_player_controller + 0x1170);
+							auto local_angle = SDK->RPM<Vector3>(SDK->g_player_controller + 0x11D0);
 							auto calc_target = CalcAngle(XMFLOAT3(vec.X, vec.Y, vec.Z), viewMatrix_xor.get_location());
 							auto vec_calc_target = Vector3(calc_target.x, calc_target.y, calc_target.z);
 							auto local_loc = Vector3(viewMatrix_xor.get_location().x, viewMatrix_xor.get_location().y, viewMatrix_xor.get_location().z);
@@ -2447,16 +1998,13 @@ namespace OW {
 							}
 						}
 					}
-
-					//Tracking
 					if (Config::Tracking) {
 
 						while (GetAsyncKeyState(Config::aim_key) && !Config::reloading)
 						{
-							//mutex.lock();
 							auto vec = GetVector3(Config::Prediction ? true : false);
 							if (vec != Vector3(0, 0, 0) && !(entities[Config::Targetenemyi].skill2act && entities[Config::Targetenemyi].HeroID == eHero::HERO_GENJI) && ((!entities[Config::Targetenemyi].imort && !entities[Config::Targetenemyi].barrprot) || Config::switch_team)) {
-								auto local_angle = SDK->RPM<Vector3>(SDK->g_player_controller + 0x1170);
+								auto local_angle = SDK->RPM<Vector3>(SDK->g_player_controller + 0x11D0);
 								auto calc_target = CalcAngle(XMFLOAT3(vec.X, vec.Y, vec.Z), viewMatrix_xor.get_location());
 								auto vec_calc_target = Vector3(calc_target.x, calc_target.y, calc_target.z);
 								auto Target = SmoothLinear(local_angle, vec_calc_target, Config::Tracking_smooth / 10.f);
@@ -2492,24 +2040,19 @@ namespace OW {
 											Config::doingdelay = 0;
 										}
 									}
-									if (Config::Rage) SDK->WPM<Vector3>(SDK->g_player_controller + 0x1170, vec_calc_target);
+									if (Config::Rage) SDK->WPM<Vector3>(SDK->g_player_controller + 0x11D0, vec_calc_target);
 									else
-										SDK->WPM<Vector3>(SDK->g_player_controller + 0x1170, Target);
+										SDK->WPM<Vector3>(SDK->g_player_controller + 0x11D0, Target);
 									float dist = Vector3(viewMatrix_xor.get_location().x, viewMatrix_xor.get_location().y, viewMatrix_xor.get_location().z).DistTo(vec);
 									if (Config::health <= Config::meleehealth && dist <= Config::meleedistance && Config::AutoMelee) {
-										//std::cout << Config::health << " " << dist << std::endl;
-										//SDK->WPM<float>(GetSenstivePTR(), 0);
 										SetKey(0x800);
-										//SDK->WPM<float>(GetSenstivePTR(), origin_sens);
 									}
 
 								}
 								if (local_entity.PlayerHealth < Config::SkillHealth) {
-									//mutex.unlock();
 									break;
 								}
 							}
-							//mutex.unlock();
 							Sleep(1);
 							if (Config::autoscalefov) {
 								auto vec = GetVector3forfov();
@@ -2542,7 +2085,6 @@ namespace OW {
 							else if (Config::highPriority && !GetAsyncKeyState(Config::aim_key2) && Config::shooted2) Config::shooted2 = false;
 						}
 					}
-					//Flick
 					else if (Config::Flick) {
 						if (Config::hitboxdelayshoot) {
 							if (Config::shooted || !GetAsyncKeyState(Config::aim_key)) {
@@ -2550,10 +2092,8 @@ namespace OW {
 								hitbotdelaytime = 0;
 							}
 						}
-						//int a = SDK->RPM<int>(SDK->g_player_controller + 0x1760);
 						while (GetAsyncKeyState(Config::aim_key) && !Config::shooted && !Config::reloading)
 						{
-							//mutex.lock();
 							auto vec = GetVector3(Config::Prediction ? true : false);
 							if (vec == Vector3(0, 0, 0)) break;
 							if (vec != Vector3(0, 0, 0) && !(entities[Config::Targetenemyi].skill2act && entities[Config::Targetenemyi].HeroID == eHero::HERO_GENJI) && ((!entities[Config::Targetenemyi].imort && !entities[Config::Targetenemyi].barrprot) || Config::switch_team)) {
@@ -2576,7 +2116,7 @@ namespace OW {
 									hitbotdelaytime = GetTickCount();
 									dodelay = 0;
 								}
-								auto local_angle = SDK->RPM<Vector3>(SDK->g_player_controller + 0x1170);
+								auto local_angle = SDK->RPM<Vector3>(SDK->g_player_controller + 0x11D0);
 								auto calc_target = CalcAngle(XMFLOAT3(vec.X, vec.Y, vec.Z), viewMatrix_xor.get_location());
 								auto vec_calc_target = Vector3(calc_target.x, calc_target.y, calc_target.z);
 								auto Target = SmoothAccelerate(local_angle, vec_calc_target, Config::Flick_smooth / 10.f, Config::accvalue);
@@ -2599,13 +2139,11 @@ namespace OW {
 									if (Config::fov360) Config::fov360 = false;
 								}
 								if (Target != Vector3(0, 0, 0)) {
-									//hitbox延迟开枪
 									if (Config::hitboxdelayshoot && hitbotdelaytime != 0) {
 										afterdelaytime = GetTickCount();
 										if (afterdelaytime - hitbotdelaytime > Config::hiboxdelaytime && !Config::doingdelay) {
 											if (local_entity.HeroID == eHero::HERO_GENJI || local_entity.HeroID == eHero::HERO_KIRIKO) {
 												SetKey(0x2);
-												//if (Config::dontshot) Config::shotcount++;
 											}
 											else
 												SetKey(0x1);
@@ -2613,11 +2151,10 @@ namespace OW {
 											continue;
 										}
 									}
-									//愤怒
 									if (Config::Rage) {
 										if (Config::fakesilent) {
-											Vector3 orangle = SDK->RPM<Vector3>(SDK->g_player_controller + 0x1170);
-											SDK->WPM<Vector3>(SDK->g_player_controller + 0x1170, vec_calc_target);
+											Vector3 orangle = SDK->RPM<Vector3>(SDK->g_player_controller + 0x11D0);
+											SDK->WPM<Vector3>(SDK->g_player_controller + 0x11D0, vec_calc_target);
 											if (Config::lockontarget)
 												SDK->WPM<float>(GetSenstivePTR(), 0);
 											SetKey(0x1);
@@ -2625,11 +2162,11 @@ namespace OW {
 											if (Config::lockontarget)
 												SDK->WPM<float>(GetSenstivePTR(), origin_sens);
 											Config::shooted = true;
-											SDK->WPM<Vector3>(SDK->g_player_controller + 0x1170, orangle);
+											SDK->WPM<Vector3>(SDK->g_player_controller + 0x11D0, orangle);
 											continue;
 										}
 										else {
-											SDK->WPM<Vector3>(SDK->g_player_controller + 0x1170, vec_calc_target);
+											SDK->WPM<Vector3>(SDK->g_player_controller + 0x11D0, vec_calc_target);
 											if (Config::lockontarget) SDK->WPM<float>(GetSenstivePTR(), 0);
 											SetKey(0x1);
 											Sleep(1);
@@ -2638,13 +2175,11 @@ namespace OW {
 											continue;
 										}
 									}
-									//正常
-									SDK->WPM<Vector3>(SDK->g_player_controller + 0x1170, Target);
+									SDK->WPM<Vector3>(SDK->g_player_controller + 0x11D0, Target);
 									if (in_range(local_angle, vec_calc_target, local_loc, vec, Config::hitbox)) {
 										if (Config::lockontarget) SDK->WPM<float>(GetSenstivePTR(), 0);
 										if (local_entity.HeroID == eHero::HERO_GENJI || local_entity.HeroID == eHero::HERO_KIRIKO) {
 											SetKey(0x2);
-											//if (!Config::sskilled) Sleep(10);
 											if (Config::dontshot) Config::shotcount++;
 										}
 										else {
@@ -2658,7 +2193,6 @@ namespace OW {
 										break;
 										
 									}
-									//自动空枪
 									else if (Config::dontshot && Config::shotcount >= Config::shotmanydont) {
 										if (in_range(local_angle, vec_calc_target, local_loc, vec, Config::missbox)) {
 											Config::shotcount = 0;
@@ -2677,9 +2211,6 @@ namespace OW {
 								else hitbotdelaytime = 0;
 
 							}
-
-
-							//mutex.unlock();
 							Sleep(1);
 							if (Config::autoscalefov) {
 								auto vec = GetVector3forfov();
@@ -2722,15 +2253,13 @@ namespace OW {
 						}
 						while (GetAsyncKeyState(Config::aim_key) && !Config::shooted)
 						{
-							//mutex.lock();
 							auto vec = GetVector3(true);
 							if (vec == Vector3(0, 0, 0)) {
-								//mutex.unlock();
 								break;
 							}
 							if (vec != Vector3(0, 0, 0) && !(entities[Config::Targetenemyi].skill2act && entities[Config::Targetenemyi].HeroID == eHero::HERO_GENJI) && ((!entities[Config::Targetenemyi].imort && !entities[Config::Targetenemyi].barrprot) || Config::switch_team)) {
 
-								auto local_angle = SDK->RPM<Vector3>(SDK->g_player_controller + 0x1170);
+								auto local_angle = SDK->RPM<Vector3>(SDK->g_player_controller + 0x11D0);
 								auto calc_target = CalcAngle(XMFLOAT3(vec.X, vec.Y, vec.Z), viewMatrix_xor.get_location());
 								auto vec_calc_target = Vector3(calc_target.x, calc_target.y, calc_target.z);
 								auto Target = SmoothAccelerate(local_angle, vec_calc_target, Config::Flick_smooth / 10.f, Config::accvalue);
@@ -2768,24 +2297,22 @@ namespace OW {
 									}
 									if (Config::Rage) {
 										if (Config::fakesilent) {
-											Vector3 orangle = SDK->RPM<Vector3>(SDK->g_player_controller + 0x1170);
-											SDK->WPM<Vector3>(SDK->g_player_controller + 0x1170, vec_calc_target);
+											Vector3 orangle = SDK->RPM<Vector3>(SDK->g_player_controller + 0x11D0);
+											SDK->WPM<Vector3>(SDK->g_player_controller + 0x11D0, vec_calc_target);
 											if (Config::lockontarget) SDK->WPM<float>(GetSenstivePTR(), 0);
 											if (local_entity.skill2act) SetKey(0x1);
 											else SetKeyHold(0x1000, 100);
 											Sleep(25);
 											if (Config::lockontarget) SDK->WPM<float>(GetSenstivePTR(), origin_sens);
 											Config::shooted = true;
-											SDK->WPM<Vector3>(SDK->g_player_controller + 0x1170, orangle);
+											SDK->WPM<Vector3>(SDK->g_player_controller + 0x11D0, orangle);
 											continue;
 										}
 										else
 										{
-											SDK->WPM<Vector3>(SDK->g_player_controller + 0x1170, vec_calc_target);
-											//SDK->WPM<float>(GetSenstivePTR(), 0);
+											SDK->WPM<Vector3>(SDK->g_player_controller + 0x11D0, vec_calc_target);
 											if (local_entity.skill2act) SetKey(0x1);
 											else SetKeyHold(0x1000, 100);
-											//SDK->WPM<float>(GetSenstivePTR(), origin_sens);
 											Config::shooted = true;
 											continue;
 										}
@@ -2806,7 +2333,7 @@ namespace OW {
 										}
 									}
 									else if (Config::doingdelay) Config::doingdelay = 0;
-									SDK->WPM<Vector3>(SDK->g_player_controller + 0x1170, Target);
+									SDK->WPM<Vector3>(SDK->g_player_controller + 0x11D0, Target);
 									if (in_range(local_angle, vec_calc_target, local_loc, vec, Config::hitbox)) {
 										if (Config::lockontarget) SDK->WPM<float>(GetSenstivePTR(), 0);
 										if (local_entity.skill2act) SetKey(0x1);
@@ -2832,9 +2359,6 @@ namespace OW {
 								}
 								else hitbotdelaytime = 0;
 							}
-
-
-							//mutex.unlock();
 							Sleep(1);
 							if (Config::autoscalefov) {
 								auto vec = GetVector3forfov();
@@ -2878,40 +2402,10 @@ namespace OW {
 							else speed = Config::bladespeed;
 							Config::Qtime = GetTickCount();
 							auto vec = GetVector3forgenji();
-							/*if (vec != Vector3(0, 0, 0)) {
-								auto local_angle = SDK->RPM<Vector3>(SDK->g_player_controller + 0x12A0);
-								auto calc_target = CalcAngle(XMFLOAT3(vec.X, vec.Y, vec.Z), viewMatrix_xor.get_location());
-								auto vec_calc_target = Vector3(calc_target.x, calc_target.y, calc_target.z);
-								auto Target = SmoothLinear(local_angle, vec_calc_target, Config::Tracking_smooth / 10.f);
-								auto local_loc = Vector3(viewMatrix_xor.get_location().x, viewMatrix_xor.get_location().y, viewMatrix_xor.get_location().z);
-								float dist = Vector3(viewMatrix_xor.get_location().x, viewMatrix_xor.get_location().y, viewMatrix_xor.get_location().z).DistTo(vec);
-								if (Target != Vector3(0, 0, 0)) {
-									SDK->WPM<Vector3>(SDK->g_player_controller + 0x12A0, Target);
-									if (Config::lastenemy != Config::Targetenemyi && dist < 20) {
-										while (!in_range(local_angle, vec_calc_target, local_loc, vec, 0.3)) {
-											vec = GetVector3forgenji();
-											local_angle = SDK->RPM<Vector3>(SDK->g_player_controller + 0x12A0);
-											calc_target = CalcAngle(XMFLOAT3(vec.X, vec.Y, vec.Z), viewMatrix_xor.get_location());
-											vec_calc_target = Vector3(calc_target.x, calc_target.y, calc_target.z);
-											Target = SmoothLinear(local_angle, vec_calc_target, Config::Tracking_smooth / 10.f);
-											local_loc = Vector3(viewMatrix_xor.get_location().x, viewMatrix_xor.get_location().y, viewMatrix_xor.get_location().z);
-											if (Config::Rage) SDK->WPM<Vector3>(SDK->g_player_controller + 0x12A0, vec_calc_target);
-											else SDK->WPM<Vector3>(SDK->g_player_controller + 0x12A0, Target);
-										}
-										Config::lastenemy = Config::Targetenemyi;
-										SetKey(0x8);
-										Sleep(45);
-									}
-									else if (dist >= 20)
-										Config::lastenemy = -1;
-									else Config::lastenemy = Config::Targetenemyi;
-								}
-							}
-							vec = GetVector3forgenji();*/
 							if (vec != Vector3(0, 0, 0)) {
 								float dist = Vector3(viewMatrix_xor.get_location().x, viewMatrix_xor.get_location().y, viewMatrix_xor.get_location().z).DistTo(vec);
 								if (dist > 20) continue;
-								auto local_angle = SDK->RPM<Vector3>(SDK->g_player_controller + 0x1170);
+								auto local_angle = SDK->RPM<Vector3>(SDK->g_player_controller + 0x11D0);
 								auto calc_target = CalcAngle(XMFLOAT3(vec.X, vec.Y, vec.Z), viewMatrix_xor.get_location());
 								auto vec_calc_target = Vector3(calc_target.x, calc_target.y, calc_target.z);
 								auto Target = SmoothLinear(local_angle, vec_calc_target, speed / 10.f);
@@ -2921,14 +2415,13 @@ namespace OW {
 									float dist = Vector3(viewMatrix_xor.get_location().x, viewMatrix_xor.get_location().y, viewMatrix_xor.get_location().z).DistTo(vec);
 									if ((!local_entity.skillcd1 && dist < 20) || dist < 7)
 									{
-										if (Config::Rage) SDK->WPM<Vector3>(SDK->g_player_controller + 0x1170, vec_calc_target);
-										else SDK->WPM<Vector3>(SDK->g_player_controller + 0x1170, Target);
+										if (Config::Rage) SDK->WPM<Vector3>(SDK->g_player_controller + 0x11D0, vec_calc_target);
+										else SDK->WPM<Vector3>(SDK->g_player_controller + 0x11D0, Target);
 									}
 									if (!local_entity.skillcd1 && in_range(local_angle, vec_calc_target, local_loc, vec, 0.8)) {
 										if (detecttoggle && !first) {
 											detecttoggle = 0;
 											Sleep(50);
-											//std::cout << "toggled" << std::endl;
 											continue;
 										}
 										SetKeyHold(0x8, 70);
@@ -2936,43 +2429,18 @@ namespace OW {
 									}
 
 									if (in_range(local_angle, vec_calc_target, local_loc, vec, 1) && dist < 5) {
-										//SDK->WPM<float>(GetSenstivePTR(), 0);
-										//if (Config::Rage) SetKey(0x1);
-										//else SetKeyHold(0x1, 900);
 										SetKey(0x1);
-										//SDK->WPM<float>(GetSenstivePTR(), origin_sens);
 									}
 									if (local_entity.skillcd1 != 0 && !detecttoggle) {
 										detecttoggle = 1;
 									}
 								}
 							}
-							/*vec = GetVector3forgenji();
-							if (vec != Vector3(0, 0, 0)) {
-								float dist = Vector3(viewMatrix_xor.get_location().x, viewMatrix_xor.get_location().y, viewMatrix_xor.get_location().z).DistTo(vec);
-								auto local_angle = SDK->RPM<Vector3>(SDK->g_player_controller + 0x12A0);
-								auto calc_target = CalcAngle(XMFLOAT3(vec.X, vec.Y, vec.Z), viewMatrix_xor.get_location());
-								auto vec_calc_target = Vector3(calc_target.x, calc_target.y, calc_target.z);
-								auto Target = SmoothLinear(local_angle, vec_calc_target, Config::Tracking_smooth / 10.f);
-								auto local_loc = Vector3(viewMatrix_xor.get_location().x, viewMatrix_xor.get_location().y, viewMatrix_xor.get_location().z);
-
-								if (Target != Vector3(0, 0, 0)) {
-									if (Config::Rage) SDK->WPM<Vector3>(SDK->g_player_controller + 0x12A0, vec_calc_target);
-									else SDK->WPM<Vector3>(SDK->g_player_controller + 0x12A0, Target);
-									float dist = Vector3(viewMatrix_xor.get_location().x, viewMatrix_xor.get_location().y, viewMatrix_xor.get_location().z).DistTo(vec);
-									if (!local_entity.skillcd1 && in_range(local_angle, vec_calc_target, local_loc, vec, 0.3) && dist < 20)
-										SetKeyHold(0x8, 70);
-								}
-							}*/
-							//mutex.unlock();
 							Sleep(1);
 							Config::lastenemy = Config::Targetenemyi;
 
 						}
 					}
-					/*if (Config::trackback) {
-						auto vec = GetVector3fortrackback(Config::Prediction ? true : false);
-					}*/
 					if (Config::autoscalefov) {
 						auto vec = GetVector3forfov();
 						if (vec != Vector3(0, 0, 0)) {
@@ -3002,14 +2470,10 @@ namespace OW {
 					}
 					if (Config::AutoMelee) {
 						auto vec = GetVector3(false);
-						//printf("%llx\n",SDK->RPM<uint32_t>(SDK->g_player_controller + 0x1244));
 						if (vec != Vector3(0, 0, 0) && entities[Config::Targetenemyi].Team) {
 							float dist = Vector3(viewMatrix_xor.get_location().x, viewMatrix_xor.get_location().y, viewMatrix_xor.get_location().z).DistTo(vec);
 							if (Config::health <= Config::meleehealth && dist <= Config::meleedistance) {
-								//std::cout << Config::health << " " << dist << std::endl;
-								//SDK->WPM<float>(GetSenstivePTR(), 0);
 								SetKey(0x800);
-								//SDK->WPM<float>(GetSenstivePTR(), origin_sens);
 								Sleep(1);
 							}
 						}
@@ -3020,37 +2484,28 @@ namespace OW {
 							float dist = Vector3(viewMatrix_xor.get_location().x, viewMatrix_xor.get_location().y, viewMatrix_xor.get_location().z).DistTo(vec);
 							if (!entities[Config::Targetenemyi].imort && !entities[Config::Targetenemyi].barrprot) {
 								if (!local_entity.skillcd1 && Config::health <= 50 && dist <= 15 && entities[Config::Targetenemyi].HeroID != 0x16dd && entities[Config::Targetenemyi].HeroID != 0x16ee) {
-									//SDK->WPM<float>(GetSenstivePTR(), 0);
-									auto local_angle = SDK->RPM<Vector3>(SDK->g_player_controller + 0x1170);
+									auto local_angle = SDK->RPM<Vector3>(SDK->g_player_controller + 0x11D0);
 									auto calc_target = CalcAngle(XMFLOAT3(vec.X, vec.Y, vec.Z), viewMatrix_xor.get_location());
 									auto vec_calc_target = Vector3(calc_target.x, calc_target.y, calc_target.z);
 									auto Target = SmoothLinear(local_angle, vec_calc_target, Config::Tracking_smooth / 10.f);
 									auto local_loc = Vector3(viewMatrix_xor.get_location().x, viewMatrix_xor.get_location().y, viewMatrix_xor.get_location().z);
 									if (in_range(local_angle, vec_calc_target, local_loc, vec, 1)) {
-										//Config::sskilled = true;
 										SetKeyHold(0x8, 40);
 									}
-									//SDK->WPM<float>(GetSenstivePTR(), origin_sens);
 								}
 								else if (!local_entity.skillcd1 && Config::health <= 80 && dist <= 17 && dist >= 15 && entities[Config::Targetenemyi].HeroID != 0x16dd && entities[Config::Targetenemyi].HeroID != 0x16ee) {
-									//SDK->WPM<float>(GetSenstivePTR(), 0);
-									auto local_angle = SDK->RPM<Vector3>(SDK->g_player_controller + 0x1170);
+									auto local_angle = SDK->RPM<Vector3>(SDK->g_player_controller + 0x11D0);
 									auto calc_target = CalcAngle(XMFLOAT3(vec.X, vec.Y, vec.Z), viewMatrix_xor.get_location());
 									auto vec_calc_target = Vector3(calc_target.x, calc_target.y, calc_target.z);
 									auto Target = SmoothLinear(local_angle, vec_calc_target, Config::Tracking_smooth / 10.f);
 									auto local_loc = Vector3(viewMatrix_xor.get_location().x, viewMatrix_xor.get_location().y, viewMatrix_xor.get_location().z);
 									if (in_range(local_angle, vec_calc_target, local_loc, vec, 1)) {
-										//Config::sskilled = true;
 										SetKey(0x8);
 										Sleep(500);
 										SetKey(0x800);
 									}
-									//SDK->WPM<float>(GetSenstivePTR(), origin_sens);
 								}
 							}
-							//if (local_entity.skill1act) {
-							//	Config::sskilled = true;
-							//}
 						}
 					}
 
@@ -3063,115 +2518,87 @@ namespace OW {
 						}
 						if (local_entity.PlayerHealth < Config::SkillHealth) {
 							if (local_entity.HeroID == eHero::HERO_TRACER && local_entity.PlayerHealth != 0 && !Config::skilled) {
-								//SDK->WPM<float>(GetSenstivePTR(), 0);
 								SetKey(0x10);
-								//SDK->WPM<float>(GetSenstivePTR(), origin_sens);
 								Config::skilled = true;
 								Sleep(1);
 								Config::lasthealth = local_entity.PlayerHealth;
 							}
 							else if (local_entity.HeroID == eHero::HERO_SOMBRA && local_entity.PlayerHealth != 0 && !Config::skilled) {
-								//SDK->WPM<float>(GetSenstivePTR(), 0);
 								SetKey(0x10);
-								//SDK->WPM<float>(GetSenstivePTR(), origin_sens);
 								Config::skilled = true;
 								Sleep(1);
 								Config::lasthealth = local_entity.PlayerHealth;
 							}
 							else if (local_entity.HeroID == eHero::HERO_ROADHOG && local_entity.PlayerHealth != 0 && !Config::skilled) {
-								//SDK->WPM<float>(GetSenstivePTR(), 0);
 								SetKey(0x10);
-								//SDK->WPM<float>(GetSenstivePTR(), origin_sens);
 								Config::skilled = true;
 								Sleep(1);
 								Config::lasthealth = local_entity.PlayerHealth;
 							}
 							else if (local_entity.HeroID == eHero::HERO_TORBJORN && local_entity.PlayerHealth != 0 && !Config::skilled) {
-								//SDK->WPM<float>(GetSenstivePTR(), 0);
 								SetKey(0x10);
-								//SDK->WPM<float>(GetSenstivePTR(), origin_sens);
 								Config::skilled = true;
 								Sleep(1);
 								Config::lasthealth = local_entity.PlayerHealth;
 							}
 							else if (local_entity.HeroID == eHero::HERO_SOLDIER76 && local_entity.PlayerHealth != 0 && !Config::skilled) {
-								//SDK->WPM<float>(GetSenstivePTR(), 0);
 								SetKey(0x10);
-								//SDK->WPM<float>(GetSenstivePTR(), origin_sens);
 								Config::skilled = true;
 								Sleep(1);
 								Config::lasthealth = local_entity.PlayerHealth;
 							}
 							else if (local_entity.HeroID == eHero::HERO_VENTURE && local_entity.PlayerHealth != 0 && !Config::skilled) {
-								//SDK->WPM<float>(GetSenstivePTR(), 0);
 								SetKey(0x10);
-								//SDK->WPM<float>(GetSenstivePTR(), origin_sens);
 								Config::skilled = true;
 								Sleep(1);
 								Config::lasthealth = local_entity.PlayerHealth;
 							}
 							else if (local_entity.HeroID == eHero::HERO_REAPER && local_entity.PlayerHealth != 0 && !Config::skilled) {
-								//SDK->WPM<float>(GetSenstivePTR(), 0);
 								SetKey(0x8);
-								//SDK->WPM<float>(GetSenstivePTR(), origin_sens);
 								Config::skilled = true;
 								Sleep(1);
 								Config::lasthealth = local_entity.PlayerHealth;
 							}
 							else if (local_entity.HeroID == eHero::HERO_MEI && local_entity.PlayerHealth != 0 && !Config::skilled) {
-								//SDK->WPM<float>(GetSenstivePTR(), 0);
 								SetKey(0x8);
-								//SDK->WPM<float>(GetSenstivePTR(), origin_sens);
 								Config::skilled = true;
 								Sleep(1);
 								Config::lasthealth = local_entity.PlayerHealth;
 							}
 							else if (local_entity.HeroID == eHero::HERO_DOOMFIST && local_entity.PlayerHealth != 0 && !Config::skilled) {
-								//SDK->WPM<float>(GetSenstivePTR(), 0);
 								SetKey(0x20);
 								Sleep(10);
 								SetKey(0x10);
-								//SDK->WPM<float>(GetSenstivePTR(), origin_sens);
 								Config::skilled = true;
 								Sleep(1);
 								Config::lasthealth = local_entity.PlayerHealth;
 							}
 							else if (local_entity.HeroID == eHero::HERO_JUNKERQUEEN && local_entity.PlayerHealth != 0 && !Config::skilled) {
-								//SDK->WPM<float>(GetSenstivePTR(), 0);
 								SetKey(0x8);
-								//SDK->WPM<float>(GetSenstivePTR(), origin_sens);
 								Config::skilled = true;
 								Sleep(1);
 								Config::lasthealth = local_entity.PlayerHealth;
 							}
 							else if (local_entity.HeroID == eHero::HERO_MOIRA && local_entity.PlayerHealth != 0 && !Config::skilled) {
-								//SDK->WPM<float>(GetSenstivePTR(), 0);
 								SetKey(0x8);
-								//SDK->WPM<float>(GetSenstivePTR(), origin_sens);
 								Config::skilled = true;
 								Sleep(1);
 								Config::lasthealth = local_entity.PlayerHealth;
 							}
 							else if (local_entity.HeroID == eHero::HERO_ZARYA && local_entity.PlayerHealth != 0 && !Config::skilled) {
-								//SDK->WPM<float>(GetSenstivePTR(), 0);
 								SetKey(0x8);
-								//SDK->WPM<float>(GetSenstivePTR(), origin_sens);
 								Config::skilled = true;
 								Sleep(1);
 								Config::lasthealth = local_entity.PlayerHealth;
 							}
 							else if (local_entity.HeroID == eHero::HERO_WINSTON && local_entity.PlayerHealth != 0 && !Config::skilled) {
-								//SDK->WPM<float>(GetSenstivePTR(), 0);
 								SetKey(0x20);
-								//SDK->WPM<float>(GetSenstivePTR(), origin_sens);
 								Config::skilled = true;
 								Sleep(1);
 								Config::lasthealth = local_entity.PlayerHealth;
 							}
 							else if (local_entity.HeroID == eHero::HERO_ZENYATTA && local_entity.PlayerHealth != 0 && !Config::skilled) {
-								//SDK->WPM<float>(GetSenstivePTR(), 0);
 								SetKey(0x20);
-								//SDK->WPM<float>(GetSenstivePTR(), origin_sens);
 								Config::skilled = true;
 								Sleep(1);
 								Config::lasthealth = local_entity.PlayerHealth;
@@ -3194,17 +2621,6 @@ namespace OW {
 							Config::shooted = false;
 						}
 					}
-					/*if (Config::AutoShiftGenji && Config::sskilled) {
-						int srectime = GetTickCount();
-						if (Config::slasttime == 0) Config::slasttime = srectime;
-						else {
-							int mtime = srectime - Config::slasttime;
-							if (mtime >= 500) {
-								Config::slasttime = 0;
-								Config::sskilled = false;
-							}
-						}
-					}*/
 					if (!GetAsyncKeyState(Config::aim_key)) {
 						Config::shooted = false;
 						Config::lasttime = 0;
@@ -3214,7 +2630,6 @@ namespace OW {
 						}
 						Config::Targetenemyi = -1;
 					}
-					//死神换弹
 					if (local_entity.HeroID == eHero::HERO_REAPER && Config::reloading) {
 						Sleep(300);
 						SetKey(0x800);
@@ -3223,10 +2638,9 @@ namespace OW {
 					if (Config::secondaim) {
 						while (GetAsyncKeyState(Config::aim_key2) && !Config::shooted2)
 						{
-							//mutex.lock();
 							auto vec = GetVector3aim2(Config::Prediction2 ? true : false);
 							if (vec != Vector3(0, 0, 0) && !(entities[Config::Targetenemyi].skill2act && entities[Config::Targetenemyi].HeroID == eHero::HERO_GENJI)) {
-								auto local_angle = SDK->RPM<Vector3>(SDK->g_player_controller + 0x1170);
+								auto local_angle = SDK->RPM<Vector3>(SDK->g_player_controller + 0x11D0);
 								auto calc_target = CalcAngle(XMFLOAT3(vec.X, vec.Y, vec.Z), viewMatrix_xor.get_location());
 								auto vec_calc_target = Vector3(calc_target.x, calc_target.y, calc_target.z);
 								Vector3 Target;
@@ -3278,7 +2692,7 @@ namespace OW {
 										SetKey(0x800);
 									}
 
-									SDK->WPM<Vector3>(SDK->g_player_controller + 0x1170, Target);
+									SDK->WPM<Vector3>(SDK->g_player_controller + 0x11D0, Target);
 									if (Config::Flick2) {
 										if (in_range(local_angle, vec_calc_target, local_loc, vec, Config::hitbox2)) {
 											if (Config::togglekey == 0)
@@ -3300,7 +2714,6 @@ namespace OW {
 									break;
 								}
 							}
-							//mutex.unlock();
 							Sleep(1);
 							if (Config::autoscalefov) {
 								auto vec = GetVector3forfov();
@@ -3343,15 +2756,11 @@ namespace OW {
 	}
 	inline void configsavenloadthread() {
 		TCHAR bufsave[100];
-		//int timetobegin = 0;
-		//timetobegin = GetTickCount();
-		//int timepassed = 0;
 		if (Config::lastheroid == -2) {
-			ImGui::InsertNotification({ ImGuiToastType_Success, 8000, skCrypt(u8"Rigel Internal Loaded\nWelcome！"), "" });
+			ImGui::InsertNotification({ ImGuiToastType_Success, 8000, skCrypt(u8"test Internal Loaded\nWelcome！"), "" });
 			Config::lastheroid = 0;
 		}
 		while (1) {
-			//timepassed = GetTickCount();
 			if (!Config::Menu) {
 				if (Config::lastheroid != local_entity.HeroID) {
 					if (Config::lastheroid != 0) {
@@ -3873,14 +3282,6 @@ namespace OW {
 					if (local_entity.HeroID != eHero::HERO_WIDOWMAKER && Config::widowautounscope) {
 						Config::widowautounscope = false;
 					}
-					/*if (timepassed - timetobegin >= 50000) {
-						_beginthread((_beginthread_proc_type)entity_scan_thread, 0, 0);
-						_beginthread((_beginthread_proc_type)entity_thread, 0, 0);
-						_beginthread((_beginthread_proc_type)viewmatrix_thread, 0, 0);
-						_beginthread((_beginthread_proc_type)aimbot_thread, 0, 0);
-						_beginthread((_beginthread_proc_type)overlay_thread, 0, 0);
-						timetobegin = GetTickCount();
-					}*/
 					Config::lastheroid = local_entity.HeroID;
 					Sleep(2);
 					std::string saveheroname = GetHeroEngNames(local_entity.HeroID, local_entity.LinkBase).c_str();
@@ -4167,7 +3568,6 @@ namespace OW {
 				saveheroname = skCrypt(u8"Saved:").decrypt() + saveheroname;
 				ImGui::InsertNotification({ ImGuiToastType_Success, 5000,saveheroname.data() , "" });
 			}
-			//Config::lastheroid = local_entity.HeroID;
 			Sleep(2);
 		}
 	}
@@ -4176,16 +3576,11 @@ namespace OW {
 		while (1) {
 			if (entities.size() > 0) {
 				if (local_entity.AngleBase && (GetAsyncKeyState(Config::aim_key) || GetAsyncKeyState(Config::aim_key2) || GetAsyncKeyState(0x01) || GetAsyncKeyState(0x02))) {
-				//if (SDK->g_player_controller) {
 					if (Config::horizonreco) {
-						//mutex.lock();
-						SDK->WPM<float>(local_entity.AngleBase + 0x1768, 0);
-						//mutex.unlock();
+						SDK->WPM<float>(local_entity.AngleBase + 0x11A0, 0);
 					}
 					if (Config::norecoil) {
-						//mutex.lock();
-						SDK->WPM<float>(local_entity.AngleBase + 0x1764, Config::recoilnum);
-						//mutex.unlock();
+						SDK->WPM<float>(local_entity.AngleBase + 0x1694, Config::recoilnum);
 					}
 
 				}
@@ -4194,31 +3589,5 @@ namespace OW {
 				}
 			}
 			Sleep(10);
-			//SDK->WPM<short>(SDK->g_player_controller + 0xd4a, 5000);
-			//SDK->WPM<short>(SDK->g_player_controller + 0xd4c, 5000);
 		}
-	}
-	/*inline void playmusicthread() {
-		TCHAR path[80] = _T(".\\ChocolateCream.mp3");//音乐文件位置
-		HWND MyPlayer = hwnd;// MCIWndCreate(NULL, GetModuleHandle(NULL), 0, path);
-		//mciSendString("setaudio .\\ChocolateCream.mp3 volume to 10", NULL, 0, NULL);
-		//MCIWndSetVolume(MyPlayer, 30);
-		int playing = 0;
-		while (Config::musicplay) {
-			if (playing == 0) {
-				//mciSendString("setaudio .\\ChocolateCream.mp3 volume to 10", NULL, 0, NULL);
-				mciSendString("play .\\ChocolateCream.mp3 repeat", NULL, 0, NULL);
-				//mciSendString("setaudio .\\ChocolateCream.mp3 volume to 300", NULL, 0, NULL);
-				//MCIWndSetRepeat(MyPlayer, TRUE);
-				//MCIWndPlay(MyPlayer);//开始播放
-				playing = 1;
-				//while (Config::musicplay) {}//控制台程序下,让程序暂停一下或来个死循环等,要不要直接退出,没法播放
-			}
-			if (!Config::musicplay) {
-				//MCIWndStop(MyPlayer);
-				mciSendString("pause .\\ChocolateCream.mp3", NULL, 0, NULL);
-				playing = 0;
-			}
-		}
-	}
-*/}
+	}}
